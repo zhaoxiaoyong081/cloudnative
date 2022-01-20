@@ -1,0 +1,26 @@
+
+1  、官网建仓库
+
+https://github.com/zhaoxiaoyong081/cloudnative
+
+2、本地安装gitbash 
+
+
+3、本地配置
+git config  --gloal user.name "zhaoxiaoyong081"
+git config  --gloal user.email "511988977@qq.com"
+
+4、下载到本地
+https://github.com/zhaoxiaoyong081/cloudnative.git
+
+5、上传文件到远端
+
+git add .
+git status 
+git commit -m "add file"
+git push  
+
+
+
+
+

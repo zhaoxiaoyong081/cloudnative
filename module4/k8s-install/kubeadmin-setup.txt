@@ -1,0 +1,97 @@
+Install kubernetes by kubeadm
+https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/
+
+Installing runtime
+https://docs.docker.com/engine/install/ubuntu/
+
+Update the apt package index and install packages to allow apt to use a repository over HTTPS:
+apt-get update
+
+sudo apt-get install \
+    apt-transport-https \
+    ca-certificates \
+    curl \
+    gnupg-agent \
+    software-properties-common
+
+
+Add Docker’s official GPG key:
+
+$ curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+
+
+Add Docker repository
+
+
+$ sudo add-apt-repository \
+   "deb [arch=amd64] https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu \
+   $(lsb_release -cs) \
+   stable"
+
+Update the apt package index, and install the latest version of Docker Engine and containerd, or go to the next step to install a specific version:
+
+$ sudo apt-get update
+$ sudo apt-get install -y docker-ce docker-ce-cli containerd.io
+
+
+
+Install kubernetes
+
+Installing kubeadm, kubelet and kubectl
+
+$ cat >> /etc/apt/sources.list.d/kubernetes.list << EOF
+ deb https://mirrors.aliyun.com/kubernetes/apt kubernetes-xenial main
+EOF
+
+
+$ curl -s https://mirrors.aliyun.com/kubernetes/apt/doc/apt-key.gpg | sudo apt-key add
+
+
+$ sudo apt-get update
+$ sudo apt-get install -y kubelet=1.19.15-00 kubeadm=1.19.15-00 kubectl=1.19.15-00
+$ sudo apt-mark hold kubelet kubeadm kubectl
+
+关闭 swap 分区：
+
+swapoff -a
+
+kubeadm init
+
+$ sudo kubeadm init \
+ --image-repository registry.aliyuncs.com/google_containers \
+ --kubernetes-version v1.19.15 \
+ --apiserver-advertise-address=192.168.74.100
+
+
+Copy kubeconfig
+
+$ mkdir -p $HOME/.kube
+$ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+$ sudo chown $(id -u):$(id -g) $HOME/.kube/config
+
+Untaint master
+$ kubectl taint nodes --all node-role.kubernetes.io/master-
+
+
+Join other node
+
+kubeadm join 192.168.74.100:6443 --token 523mnh.qquool9u7onvterl \
+    --discovery-token-ca-cert-hash sha256:58de03679d2876f1cc4d3698c77ce455451ccf2b74c66b273098c185dcc55c9f
+
+
+
+Install cilium
+$ helm install cilium cilium/cilium --version 1.9.1 \
+    --namespace kube-system \
+    --set kubeProxyReplacement=strict \
+    --set k8sServiceHost=192.168.74.100 \
+    --set k8sServicePort=6443
+
+
+Install calico cni plugin
+https://docs.projectcalico.org/getting-started/kubernetes/quickstart
+
+$ kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yaml
+$ kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
+
+$ for i in `kubectl api-resources | grep true | awk '{print \$1}'`; do echo $i;kubectl get $i -n rook-ceph; done
