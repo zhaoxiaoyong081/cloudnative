@@ -1,0 +1,50 @@
+
+允许远程登陆
+/etc/ssh/sshd_config
+root@master:/etc/ssh# grep  PasswordAuthentication sshd_config
+PasswordAuthentication yes
+
+
+
+配置网卡
+root@master:/etc/netplan# cat  /etc/netplan/50-cloud-init.yaml
+# This file is generated from information provided by the datasource.  Changes
+# to it will not persist across an instance reboot.  To disable cloud-init's
+# network configuration capabilities, write a file
+# /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg with the following:
+# network: {config: disabled}
+network:
+    ethernets:
+        ens192:
+            dhcp4: no
+            addresses: [192.168.74.88/24]
+            optional: true
+            gateway4: 192.168.74.2
+            nameservers:
+                    addresses: [192.168.74.2]
+    version: 2
+
+root@master:/etc/netplan#
+
+
+APT 源配置
+
+/etc/apt/sources.list
+
+deb http://archive.ubuntu.com/ubuntu focal main restricted
+
+deb http://archive.ubuntu.com/ubuntu focal-updates main restricted
+
+deb http://archive.ubuntu.com/ubuntu focal universe
+deb http://archive.ubuntu.com/ubuntu focal-updates universe
+
+deb http://archive.ubuntu.com/ubuntu focal multiverse
+deb http://archive.ubuntu.com/ubuntu focal-updates multiverse
+
+deb http://archive.ubuntu.com/ubuntu focal-backports main restricted universe multiverse
+
+
+deb http://security.ubuntu.com/ubuntu focal-security main restricted
+deb http://security.ubuntu.com/ubuntu focal-security universe
+deb http://security.ubuntu.com/ubuntu focal-security multiverse
+deb [arch=amd64] https://mirrors.ustc.edu.cn/docker-ce/linux/ubuntu focal stable

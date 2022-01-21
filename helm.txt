@@ -1,0 +1,15 @@
+wget https://get.helm.sh/helm-v3.7.2-linux-amd64.tar.gz
+
+tar xvf helm-v3.7.2-linux-amd64.tar.gz
+
+cp  linux-amd64/helm  /usr/local/bin/
+
+
+
+helm repo add cilium https://helm.cilium.io/
+
+helm repo add stable https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts        
+
+helm repo add stable http://mirror.azure.cn/kubernetes/charts/
+
+

@@ -60,7 +60,7 @@ kubeadm init
 $ sudo kubeadm init \
  --image-repository registry.aliyuncs.com/google_containers \
  --kubernetes-version v1.19.15 \
- --apiserver-advertise-address=192.168.74.100
+ --apiserver-advertise-address=192.168.74.88
 
 
 Copy kubeconfig
@@ -79,12 +79,15 @@ kubeadm join 192.168.74.100:6443 --token 523mnh.qquool9u7onvterl \
     --discovery-token-ca-cert-hash sha256:58de03679d2876f1cc4d3698c77ce455451ccf2b74c66b273098c185dcc55c9f
 
 
+kubeadm join 192.168.74.88:6443 --token tgptv7.976rxvk21qj9h0b1 \
+    --discovery-token-ca-cert-hash sha256:e90a42b330831310de443bcfa06def7a1e59616e80a5a8dd7ee1b5f29ee57876
+
 
 Install cilium
 $ helm install cilium cilium/cilium --version 1.9.1 \
     --namespace kube-system \
     --set kubeProxyReplacement=strict \
-    --set k8sServiceHost=192.168.74.100 \
+    --set k8sServiceHost=192.168.74.88 \
     --set k8sServicePort=6443
 
 
@@ -95,3 +98,6 @@ $ kubectl create -f https://docs.projectcalico.org/manifests/tigera-operator.yam
 $ kubectl create -f https://docs.projectcalico.org/manifests/custom-resources.yaml
 
 $ for i in `kubectl api-resources | grep true | awk '{print \$1}'`; do echo $i;kubectl get $i -n rook-ceph; done
+
+
+

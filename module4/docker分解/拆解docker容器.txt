@@ -1,0 +1,70 @@
+
+解压镜像
+
+root@ubuntu:~# docker pull busybox
+root@ubuntu:~# docker image save busybox -o busybox.tar
+root@ubuntu:~# mkdir -p /var/lib/fmeng/busybox
+root@ubuntu:~# tar -xf busybox.tar -C /var/lib/fmeng/busybox/
+cd /var/lib/fmeng/busybox/34e8fab28d4d7a5f793edacf0c57cea67d836802c13080d6b2262ca5d6adeac6
+tar xf layer.tar
+chroot /var/lib/fmeng/busybox/34e8fab28d4d7a5f793edacf0c57cea67d836802c13080d6b2262ca5d6adeac6/ /bin/sh
+
+
+
+
+
+容器网络
+
+apt install bridge-utils
+ brctl addbr fmengbr0
+ ip addr add 172.18.0.1/24 dev fmengbr0
+ ip link set dev fmengbr0 up
+
+
+ip link add dev veth0_1 type veth peer name veth1_1
+ip link set dev veth0_1 up
+ip link set veth0_1 master fmengbr0
+ip netns add netns_test
+ip link set veth1_1 netns netns_test
+ip netns exec netns_test ip link set dev lo up
+ip netns exec netns_test ip link set veth1_1 address 02:42:ac:11:00:01
+ip netns exec netns_test ip addr add 172.18.0.2/24 dev veth1_1
+ip netns exec netns_test ip link set dev veth1_1 up
+ip netns exec netns_test ip route add default via 172.18.0.2
+
+root@master:~# ifconfig fmengbr0
+fmengbr0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 172.18.0.1  netmask 255.255.255.0  broadcast 0.0.0.0
+        inet6 fe80::1431:99ff:fe7c:50a7  prefixlen 64  scopeid 0x20<link>
+        ether ae:2b:f5:7f:35:d3  txqueuelen 1000  (Ethernet)
+        RX packets 8  bytes 544 (544.0 B)
+        RX errors 0  dropped 0  overruns 0  frame 0
+        TX packets 13  bytes 1134 (1.1 KB)
+        TX errors 0  dropped 0 overruns 0  carrier 0  collisions 0
+
+
+apt install cgroup-tools
+# cgcreate -g cpu,cpuacct,memory:/test
+# cgexec -g "cpu,cpuacct,memory:/test"  ip netns exec netns_test unshare -fmuip --mount-proc chroot "/var/lib/fmeng/busybox/"34e8fab28d4d7a5f793edacf0c57cea67d836802c13080d6b2262ca5d6adeac6 /bin/sh
+
+/ # ls
+VERSION    etc        layer.tar  root       var
+bin        home       lib        tmp
+dev        json       lib64      usr
+
+
+/ # ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+    inet6 ::1/128 scope host
+       valid_lft forever preferred_lft forever
+5: veth1_1@if6: <BROADCAST,MULTICAST,UP,LOWER_UP,M-DOWN> mtu 1500 qdisc noqueue qlen 1000
+    link/ether 02:42:ac:11:00:01 brd ff:ff:ff:ff:ff:ff
+    inet 172.18.0.2/24 scope global veth1_1
+       valid_lft forever preferred_lft forever
+    inet6 fe80::42:acff:fe11:1/64 scope link
+       valid_lft forever preferred_lft forever
+/ #
+

@@ -1,0 +1,91 @@
+
+$ kubectl create configmap envoy-config --from-file=envoy.yaml
+$ kubectl create -f envoy-deploy.yaml
+$ kubectl expose deploy envoy --selector run=envoy --port=10000 --type=NodePort
+
+root@master:~/cloudnative/module4/envoy# k get deploy,pod,svc
+NAME                    READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/envoy   1/1     1            1           5m4s
+
+NAME                        READY   STATUS    RESTARTS   AGE
+pod/envoy-fb5d77cc9-tr8nd   1/1     Running   0          5m4s
+
+NAME                 TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)           AGE
+service/envoy        NodePort    10.105.195.136   <none>        10000:32411/TCP   4m46s
+service/kubernetes   ClusterIP   10.96.0.1        <none>        443/TCP           4h39m
+
+
+root@master:~/cloudnative/module4/envoy# k get pod  -owide
+NAME                    READY   STATUS    RESTARTS   AGE     IP          NODE    NOMINATED NODE   READINESS GATES
+envoy-fb5d77cc9-tr8nd   1/1     Running   0          5m52s   10.0.1.93   node1   <none>           <none>
+root@master:~/cloudnative/module4/envoy#
+root@master:~/cloudnative/module4/envoy# curl 10.105.195.136:10000
+no healthy upstreamroot@master:~/cloudnative/module4/envoy#
+root@master:~/cloudnative/module4/envoy# curl 10.0.1.93:10000
+no healthy upstreamroot@master:~/cloudnative/module4/envoy#
+root@master:~/cloudnative/module4/envoy#
+
+
+root@master:~/cloudnative/module4/envoy# kubectl scale deploy envoy --replicas=2
+deployment.apps/envoy scaled
+root@master:~/cloudnative/module4/envoy# k get pod  -owide
+NAME                    READY   STATUS              RESTARTS   AGE    IP          NODE    NOMINATED NODE   READINESS GATES
+envoy-fb5d77cc9-cz4c9   0/1     ContainerCreating   0          5s     <none>      node1   <none>           <none>
+envoy-fb5d77cc9-tr8nd   1/1     Running             0          7m7s   10.0.1.93   node1   <none>           <none>
+root@master:~/cloudnative/module4/envoy#
+
+
+#进入 Pod 查看 Envoy 进程和配置。
+root@master:~/cloudnative/module4/envoy# k exec  -it  envoy-fb5d77cc9-cz4c9  /bin/bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [POD] -- [COMMAND] instead.
+
+root@envoy-fb5d77cc9-cz4c9:/# ps -ef
+UID          PID    PPID  C STIME TTY          TIME CMD
+envoy          1       0  0 11:43 ?        00:00:01 envoy -c /etc/envoy/envoy.yaml
+root          20       0  0 11:49 pts/0    00:00:00 /bin/bash
+root          30      20  0 11:50 pts/0    00:00:00 ps -ef
+
+root@envoy-fb5d77cc9-tr8nd:/etc/apt# netstat  -antp
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name
+tcp        0      0 127.0.0.1:9901          0.0.0.0:*               LISTEN      -               
+tcp        0      0 0.0.0.0:10000           0.0.0.0:*               LISTEN      -               
+tcp        0      0 0.0.0.0:10000           0.0.0.0:*               LISTEN      -               
+tcp        0      0 10.0.1.93:43298         91.189.88.142:80        TIME_WAIT   -               
+tcp        0      0 10.0.1.93:40634         91.189.88.152:80        TIME_WAIT   -               
+root@envoy-fb5d77cc9-tr8nd:/etc/apt#
+
+
+#更改配置的监听端口并测试访问入口的变化。
+
+root@master:~/cloudnative/module4/envoy# curl  10.105.195.136:10000
+curl: (7) Failed to connect to 10.105.195.136 port 10000: Connection refused
+root@master:~/cloudnative/module4/envoy# curl 10.0.0.177:8888
+no healthy upstreamroot@master:~/cloudnative/module4/envoy#
+
+
+$ kubectl expose deploy envoy --selector run=envoy --port=8888 --type=NodePort
+
+
+
+#通过非级联删除的方法逐个删除对象。
+
+root@master:~/cloudnative/module4/envoy# kubectl get deploy,pod,svc
+NAME                    READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/envoy   1/1     1            1           77s
+
+NAME                        READY   STATUS    RESTARTS   AGE
+pod/envoy-fb5d77cc9-zxngw   1/1     Running   0          77s
+
+NAME                 TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
+service/envoy        NodePort    10.101.168.11   <none>        8888:30030/TCP   70s
+service/kubernetes   ClusterIP   10.96.0.1       <none>        443/TCP          5h41m
+root@master:~/cloudnative/module4/envoy#
+root@master:~/cloudnative/module4/envoy# k delete svc envoy
+service "envoy" deleted
+root@master:~/cloudnative/module4/envoy# k delete deploy envoy
+deployment.apps "envoy" deleted
+root@master:~/cloudnative/module4/envoy# kubectl get deploy,pod,svc
+NAME                 TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+service/kubernetes   ClusterIP   10.96.0.1    <none>        443/TCP   5h42m
+root@master:~/cloudnative/module4/envoy#
