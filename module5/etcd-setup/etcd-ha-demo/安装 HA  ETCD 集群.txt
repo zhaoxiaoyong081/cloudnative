@@ -1,0 +1,151 @@
+
+安装 HA  ETCD 集群 
+
+wget https://github.com/etcd-io/etcd/releases/download/v3.5.0/etcd-v3.5.0-linux-amd64.tar.gz
+tar -xvf etcd-v3.5.0-linux-amd64.tar.gz
+cp -p etcd-v3.5.0-linux-amd64/etcd* /usr/local/bin/
+
+
+下载 cfssl 工具
+
+
+wget https://pkg.cfssl.org/R1.2/cfssl_linux-amd64
+wget https://pkg.cfssl.org/R1.2/cfssljson_linux-amd64
+wget https://pkg.cfssl.org/R1.2/cfssl-certinfo_linux-amd64
+
+chmod +x cfssl*
+mv cfssl_linux-amd64 /usr/local/bin/cfssl
+mv cfssljson_linux-amd64 /usr/local/bin/cfssljson
+mv cfssl-certinfo_linux-amd64 /usr/local/bin/cfssl-certinfo
+
+
+
+### Update your golang to 1.15+
+
+### Install cfssl
+
+```sh
+apt install golang-cfssl
+```
+
+### Generate tls certs
+
+```sh
+mkdir /root/go/src/github.com/etcd-io
+cd /root/go/src/github.com/etcd-io
+```
+
+```sh
+git clone https://github.com/etcd-io/etcd.git
+cd etcd/hack/tls-setup
+```
+
+### Edit req-csr.json and keep 127.0.0.1 and localhost only for single cluster setup.
+
+```sh
+vi config/req-csr.json
+```
+
+### Generate certs
+
+```sh
+export infra0=127.0.0.1
+export infra1=127.0.0.1
+export infra2=127.0.0.1
+make
+mkdir /tmp/etcd-certs
+mv certs /tmp/etcd-certs
+```
+
+### Start etcd cluster member1
+
+```sh
+./start-all.sh
+```
+
+### Member list
+
+```sh
+etcdctl --endpoints https://127.0.0.1:3379 --cert /tmp/etcd-certs/certs/127.0.0.1.pem --key /tmp/etcd-certs/certs/127.0.0.1-key.pem --cacert /tmp/etcd-certs/certs/ca.pem member list
+```
+
+### Backup
+
+```sh
+./backup.sh
+```
+
+### Delete data
+
+```sh
+rm -rf /tmp/etcd
+```
+
+### Kill process
+
+```sh
+kill process of infra0 infra1 infra2
+```
+
+### Restore
+
+```sh
+./restore.sh
+```
+alias etcdctlk='etcdctl --endpoints https://127.0.0.1:3379 --cert /tmp/etcd-certs/certs/127.0.0.1.pem --key /tmp/etcd-certs/certs/127.0.0.1-key.pem --cacert /tmp/etcd-certs/certs/ca.pem'
+
+
+
+etcdctl --endpoints https://127.0.0.1:3379 --cert /tmp/etcd-certs/certs/127.0.0.1.pem --key /tmp/etcd-certs/certs/127.0.0.1-key.pem --cacert /tmp/etcd-certs/certs/ca.pem  put a b  
+
+[root@master1 etcd]# etcdctlk get a
+a
+b
+
+rm  -rf infra0/
+
+
+
+启动一个单节点  quota 限制为 16M  
+
+etcd --listen-client-urls 'http://localhost:12379' \
+ --advertise-client-urls 'http://localhost:12379' \
+ --listen-peer-urls 'http://localhost:12380' \
+ --initial-advertise-peer-urls 'http://localhost:12380' \
+ --initial-cluster 'default=http://localhost:12380' \
+ --quota-backend-bytes=$((16*1024*1024))
+ 
+
+
+
+while [ 1 ]; do dd if=/dev/urandom bs=1024 count=1024 | ETCDCTL_API=3 etcdctl --endpoints=http://localhost:12379  put key || break; done
+
+[root@master1 etcd-ha-demo]#  etcdctl --endpoints=http://localhost:12379  member list
+c9ac9fc89eae9cf7, started, default, http://localhost:12380, http://localhost:12379, false
+
+
+ 
+[root@master1 etcd-ha-demo]#  etcdctl --endpoints=http://localhost:12379  endpoint status
+http://localhost:12379, c9ac9fc89eae9cf7, 3.5.0, 18 MB, true, false, 2, 18, 18, memberID:14532165781622267127 alarm:NOSPACE
+[root@master1 etcd-ha-demo]#
+
+
+etcdctl --endpoints=http://localhost:12379  alarm list 
+
+
+[root@master1 etcd-ha-demo]# etcdctl --endpoints=http://localhost:12379  alarm list
+memberID:14532165781622267127 alarm:NOSPACE
+
+
+[root@master1 etcd-ha-demo]# etcdctl --endpoints=http://localhost:12379  defrag
+Finished defragmenting etcd member[http://localhost:12379]
+[root@master1 etcd-ha-demo]#
+
+
+[root@master1 etcd-ha-demo]# etcdctl --endpoints=http://localhost:12379  alarm disarm
+memberID:14532165781622267127 alarm:NOSPACE
+
+
+[root@master1 etcd-ha-demo]# etcdctl --endpoints=http://localhost:12379  put  key  zxy
+OK
+
