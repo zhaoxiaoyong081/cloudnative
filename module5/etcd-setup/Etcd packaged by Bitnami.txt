@@ -1,0 +1,59 @@
+
+
+root@master:~# helm repo add bitnami https://charts.bitnami.com/bitnamihelm repo add bitnami https://charts.bitnami.com/bitnami
+root@master:~#
+
+root@master:~# helm repo list
+NAME    URL
+stable  https://kubernetes.oss-cn-hangzhou.aliyuncs.com/charts
+cilium  https://helm.cilium.io/
+bitnami https://charts.bitnami.com/bitnami
+root@master:~#
+root@master:~#
+root@master:~#
+root@master:~# helm install my-release bitnami/etcd
+NAME: my-release
+LAST DEPLOYED: Tue Feb  1 08:49:24 2022
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+CHART NAME: etcd
+CHART VERSION: 6.13.2
+APP VERSION: 3.5.1
+
+** Please be patient while the chart is being deployed **
+
+etcd can be accessed via port 2379 on the following DNS name from within your cluster:
+
+    my-release-etcd.default.svc.cluster.local
+
+To create a pod that you can use as a etcd client run the following command:
+
+    kubectl run my-release-etcd-client --restart='Never' --image docker.io/bitnami/etcd:3.5.1-debian-10-r88 --env ROOT_PASSWORD=$(kubectl get secret --namespace default my-release-etcd -o jsonpath="{.data.etcd-root-password}" | base64 --decode) --env ETCDCTL_ENDPOINTS="my-release-etcd.default.svc.cluster.local:2379" --namespace default --command -- sleep infinity
+
+Then, you can set/get a key using the commands below:
+
+    kubectl exec --namespace default -it my-release-etcd-client -- bash
+    etcdctl --user root:$ROOT_PASSWORD put /message Hello	
+    etcdctl --user root:$ROOT_PASSWORD get /message
+
+To connect to your etcd server from outside the cluster execute the following commands:
+
+    kubectl port-forward --namespace default svc/my-release-etcd 2379:2379 &
+    echo "etcd URL: http://127.0.0.1:2379"
+
+ * As rbac is enabled you should add the flag `--user root:$ETCD_ROOT_PASSWORD` to the etcdctl commands. Use the command below to export the password:
+
+    export ETCD_ROOT_PASSWORD=$(kubectl get secret --namespace default my-release-etcd -o jsonpath="{.data.etcd-root-password}" | base64 --decode)
+root@master:~#
+
+
+
+helm install -n etcd bitnami/etcd --set  replicaCount=3 --set persistence.enabled=true --set metrics.enabled=true --set resources.limits.cpu=2  --set resources.limits.memory=4Gi  --set resources.requests.cpu=2  --set resources.requests.memory=4Gi     --set global.storageClass=disk --set auth.rbac.enabled=false
+
+helm install -n service --generate-name=etcd     bitnami/etcd --set  replicaCount=3 --set persistence.enabled=true --set metrics.enabled=true --set resources.limits.cpu=2  --set resources.limits.memory=4Gi  --set resources.requests.cpu=2  --set resources.requests.memory=4Gi     --set global.storageClass=disk --set auth.rbac.enabled=false
+ 
+
+

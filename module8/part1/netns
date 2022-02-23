@@ -1,0 +1,30 @@
+
+
+root@master:/etc/apt# docker ps  | grep http
+3f26ccecc39c   7c7cd9c37252                                        "/bin/sh -c /httpser…"   2 hours ago      Up 2 hours                k8s_httpserver-cluster_httpserver-deploy-548b6d5f77-tg859_default_0403fa2f-8b66-43ff-bb77-9f121298696e_0
+8af33d6a91cc   registry.aliyuncs.com/google_containers/pause:3.2   "/pause"                 2 hours ago      Up 2 hours                k8s_POD_httpserver-deploy-548b6d5f77-tg859_default_0403fa2f-8b66-43ff-bb77-9f121298696e_0
+root@master:/etc/apt#
+root@master:/etc/apt#
+root@master:/etc/apt# docker inspect -f {{.State.Pid}} 3f26ccecc39c
+645434
+root@master:/etc/apt# nsenter -t 645434  -n  
+
+root@master:/etc/apt# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+889: eth0@if890: <BROADCAST,MULTICAST,UP,LOWER_UP> mtu 1500 qdisc noqueue state UP group default
+    link/ether b2:2e:9d:14:36:e1 brd ff:ff:ff:ff:ff:ff link-netnsid 0
+    inet 10.0.0.97/32 scope global eth0
+       valid_lft forever preferred_lft forever
+root@master:/etc/apt#
+
+root@master:/etc/apt# netstat  -antp  
+Active Internet connections (servers and established)
+Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    
+tcp6       0      0 :::8080                 :::*                    LISTEN      645453/httpserver   
+root@master:/etc/apt#
+
+root@master:/etc/apt# curl 10.0.0.97:8080
+<h1>welcome to cloud native</h1>

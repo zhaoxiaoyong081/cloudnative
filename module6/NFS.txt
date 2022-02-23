@@ -1,0 +1,30 @@
+配置一个 nfs server
+
+# apt-get install nfs-kernel-server
+# mkdir -p /data/cloudnative
+#echo "/data/cloudnative  192.168.74.0/24(rw,sync,no_subtree_check,no_root_squash)"  >>/etc/exports
+# exportfs -rv
+# showmount -e 192.168.74.88 
+
+
+
+安装 csi-driver-nfs
+
+curl -skSL https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/install-driver.sh | bash -s master --
+
+
+wget https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/rbac-csi-nfs-controller.yaml 
+wget https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/csi-nfs-driverinfo.yaml
+wget https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/csi-nfs-controller.yaml
+wget https://raw.githubusercontent.com/kubernetes-csi/csi-driver-nfs/master/deploy/csi-nfs-node.yaml
+
+kubectl apply -f  rbac-csi-nfs-controller.yaml
+kubectl apply -f  csi-nfs-driverinfo.yaml
+kubectl apply -f csi-nfs-controller.yaml
+kubectl apply -f csi-nfs-node.yaml
+
+
+k8s.gcr.io/sig-storage/csi-provisioner:v3.1.0
+k8s.gcr.io/sig-storage/livenessprobe:v2.5.0
+
+docker pull registry.aliyuncs.com/google_containers/sig-storage/csi-provisioner:v3.1.0
