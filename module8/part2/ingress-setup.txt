@@ -1,43 +1,18 @@
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress# kubectl create -f nginx-ingress-deployment.yaml 
-namespace/ingress-nginx created
-serviceaccount/ingress-nginx created
-configmap/ingress-nginx-controller created
-clusterrole.rbac.authorization.k8s.io/ingress-nginx created
-clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx created
-role.rbac.authorization.k8s.io/ingress-nginx created
-rolebinding.rbac.authorization.k8s.io/ingress-nginx created
-service/ingress-nginx-controller-admission created
-service/ingress-nginx-controller created
-deployment.apps/ingress-nginx-controller created
-ingressclass.networking.k8s.io/nginx created
-validatingwebhookconfiguration.admissionregistration.k8s.io/ingress-nginx-admission created
-serviceaccount/ingress-nginx-admission created
-clusterrole.rbac.authorization.k8s.io/ingress-nginx-admission created
-clusterrolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
-role.rbac.authorization.k8s.io/ingress-nginx-admission created
-rolebinding.rbac.authorization.k8s.io/ingress-nginx-admission created
-job.batch/ingress-nginx-admission-create created
-job.batch/ingress-nginx-admission-patch created
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress# openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=cncamp.com/O=cncamp" -addext "subjectAltName = DNS:cncamp.com"
+
+root@node1:~/module8# openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=cncamp.com/O=cncamp" -addext "subjectAltName = DNS:cncamp.com"
 Generating a RSA private key
-...........+++++
-........................................................+++++
+..+++++
+...................+++++
 writing new private key to 'tls.key'
 -----
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress# ls  -a
-.  ..  nginx-ingress-deployment.yaml  tls.crt  tls.key
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress# kubectl create secret tls cncamp-tls --cert=./tls.crt --key=./tls.key
+root@node1:~/module8# ls
+httpserver-deployment-new.yaml  httpserver-deployment.yaml  httpserver-service  myenv.yaml  tls.crt  tls.key
+root@node1:~/module8# 
+root@node1:~/module8# kubectl create secret tls cncamp-tls --cert=./tls.crt --key=./tls.key
 secret/cncamp-tls created
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress# 
-
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress# kubectl create -f ingress.yaml
-Error from server (InternalError): error when creating "ingress.yaml": Internal error occurred: failed calling webhook "validate.nginx.ingress.kubernetes.io": Post "https://ingress-nginx-controller-admission.ingress-nginx.svc:443/networking/v1/ingresses?timeout=10s": dial tcp 10.99.206.101:443: connect: connection refused
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress# 
+root@node1:~/module8# 
 
 
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress# k get ingress
-Warning: extensions/v1beta1 Ingress is deprecated in v1.14+, unavailable in v1.22+; use networking.k8s.io/v1 Ingress
-No resources found in default namespace.
-root@master:/home/ubuntu/cloudnative/module8/part2/ingress#
+
 
 

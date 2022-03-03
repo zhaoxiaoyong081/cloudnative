@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: myenv
+data:
+  loglevel: debug 
+  httpport: "8080"

@@ -1,0 +1,122 @@
+如下步骤为使用 kubespray 安装kubernets HA 
+
+【宿主机上运行】
+
+### Download kubespary docker image
+docker pull quay.io/kubespray/kubespray:v2.16.0
+
+### Clone kubespary source code
+
+git clone https://github.com/kubernetes-sigs/kubespray.git
+
+###生成证书
+ssh-keygen -t rsa
+ssh-copy-id -i ~/.ssh/id_rsa.pub ubuntu@192.168.74.102
+ssh-copy-id -i ~/.ssh/id_rsa.pub ubuntu@192.168.74.103
+
+
+### Start kubespray 
+cd kubespray
+docker run --net host --rm -it --name kubespray --mount type=bind,source="$(pwd)"/inventory/sample,dst=/inventory --mount type=bind,source="${HOME}"/.ssh/id_rsa,dst=/root/.ssh/id_rsa   quay.io/kubespray/kubespray:v2.16.0 bash
+
+
+### Change remote user
+
+vi ansible.cfg
+add remote_user=ubuntu to [default] section
+docker cp ansible.cfg kubespray:/kubespray/ansible.cfg
+
+【容器上运行】
+
+
+
+### Build ansible inventory
+
+cp -r inventory/sample inventory/mycluster
+declare -a IPS=(192.168.74.102 192.168.74.103)
+CONFIG_FILE=inventory/mycluster/hosts.yml python3 contrib/inventory_builder/inventory.py ${IPS[@]}
+
+
+### Change gcr.io to mirror
+
+
+cat > inventory/mycluster/group_vars/k8s_cluster/vars.yml << EOF
+gcr_image_repo: "registry.aliyuncs.com/google_containers"
+kube_image_repo: "registry.aliyuncs.com/google_containers"
+etcd_download_url: "https://ghproxy.com/https://github.com/coreos/etcd/releases/download/{{ etcd_version }}/etcd-{{ etcd_version }}-linux-{{ image_arch }}.tar.gz"
+cni_download_url: "https://ghproxy.com/https://github.com/containernetworking/plugins/releases/download/{{ cni_version }}/cni-plugins-linux-{{ image_arch }}-{{ cni_version }}.tgz"
+calicoctl_download_url: "https://ghproxy.com/https://github.com/projectcalico/calicoctl/releases/download/{{ calico_ctl_version }}/calicoctl-linux-{{ image_arch }}"
+calico_crds_download_url: "https://ghproxy.com/https://github.com/projectcalico/calico/archive/{{ calico_version }}.tar.gz"
+crictl_download_url: "https://ghproxy.com/https://github.com/kubernetes-sigs/cri-tools/releases/download/{{ crictl_version }}/crictl-{{ crictl_version }}-{{ ansible_system | lower }}-{{ image_arch }}.tar.gz"
+nodelocaldns_image_repo: "cncamp/k8s-dns-node-cache"
+dnsautoscaler_image_repo: "cncamp/cluster-proportional-autoscaler-amd64"
+EOF
+
+
+###  ansible playbook 
+ansible-playbook -i inventory/mycluster/hosts.yml cluster.yml -b -v --private-key=~/.ssh/id_rsa
+
+
+
+###result  out  
+Thursday 03 March 2022  04:45:14 +0000 (0:00:00.254)       0:29:55.617 ******** 
+Thursday 03 March 2022  04:45:14 +0000 (0:00:00.305)       0:29:55.922 ******** 
+
+PLAY RECAP *******************************************************************************************************************************************************************************************************************************************************************
+localhost                  : ok=3    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+node1                      : ok=552  changed=42   unreachable=0    failed=0    skipped=1170 rescued=0    ignored=2   
+node2                      : ok=415  changed=21   unreachable=0    failed=0    skipped=959  rescued=0    ignored=1   
+
+Thursday 03 March 2022  04:45:15 +0000 (0:00:00.296)       0:29:56.219 ******** 
+=============================================================================== 
+download_container | Download image if required --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 368.51s
+etcd : Gen_certs | copy certs generation script ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 66.28s
+kubernetes/control-plane : kubeadm | Initialize first master --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 49.90s
+kubernetes-apps/ansible : Kubernetes Apps | Start Resources ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 44.00s
+download | Download files / images ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 26.16s
+download : check_pull_required |  Generate a list of information about the images on a node -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 25.50s
+kubernetes-apps/ansible : Kubernetes Apps | Lay Down CoreDNS templates ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 23.23s
+container-engine/docker : ensure docker packages are installed ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 22.91s
+network_plugin/calico : Calico | Create calico manifests ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 22.45s
+download | Download files / images ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 18.77s
+kubernetes/control-plane : Joining control plane node to the cluster. ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ 16.59s
+policy_controller/calico : Start of Calico kube controllers ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 13.36s
+etcd : Gen_certs | add CA to trusted CA dir -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 13.27s
+kubernetes/preinstall : Update package management cache (APT) -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 13.19s
+network_plugin/calico : Start Calico resources ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 12.34s
+download | Download files / images ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 10.58s
+kubernetes/control-plane : set kubeadm certificate key --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 10.43s
+download | Download files / images ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- 10.18s
+etcd : Gen_certs | run cert generation script ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ 10.01s
+Gen_certs | Get etcd certificate serials ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ 9.83s
+root@node1:/kubespray#  
+root@node1:/kubespray# 
+root@node1:/kubespray# 
+
+
+### finish check  
+root@node1:~# kubectl get nodes  
+NAME    STATUS   ROLES                  AGE    VERSION
+node1   Ready    control-plane,master   109m   v1.20.7
+node2   Ready    control-plane,master   109m   v1.20.7
+root@node1:~# 
+
+
+root@node1:~# kubectl get po   -A -owide  
+NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE    IP               NODE    NOMINATED NODE   READINESS GATES
+kube-system   calico-kube-controllers-7c5b64bf96-8665j   1/1     Running   1          118m   192.168.74.102   node1   <none>           <none>
+kube-system   calico-node-cf6tf                          1/1     Running   2          119m   192.168.74.102   node1   <none>           <none>
+kube-system   calico-node-xx5ng                          1/1     Running   9          119m   192.168.74.103   node2   <none>           <none>
+kube-system   coredns-f944c7f7c-dp2ff                    1/1     Running   0          116m   10.233.96.1      node2   <none>           <none>
+kube-system   coredns-f944c7f7c-gwsnb                    1/1     Running   0          116m   10.233.90.1      node1   <none>           <none>
+kube-system   dns-autoscaler-557bfb974d-72jw4            1/1     Running   0          116m   10.233.90.2      node1   <none>           <none>
+kube-system   kube-apiserver-node1                       1/1     Running   0          123m   192.168.74.102   node1   <none>           <none>
+kube-system   kube-apiserver-node2                       1/1     Running   0          123m   192.168.74.103   node2   <none>           <none>
+kube-system   kube-controller-manager-node1              1/1     Running   0          123m   192.168.74.102   node1   <none>           <none>
+kube-system   kube-controller-manager-node2              1/1     Running   0          123m   192.168.74.103   node2   <none>           <none>
+kube-system   kube-proxy-6ndhh                           1/1     Running   0          120m   192.168.74.102   node1   <none>           <none>
+kube-system   kube-proxy-7zzbc                           1/1     Running   0          120m   192.168.74.103   node2   <none>           <none>
+kube-system   kube-scheduler-node1                       1/1     Running   1          123m   192.168.74.102   node1   <none>           <none>
+kube-system   kube-scheduler-node2                       1/1     Running   0          123m   192.168.74.103   node2   <none>           <none>
+kube-system   nodelocaldns-vqpgh                         1/1     Running   0          116m   192.168.74.103   node2   <none>           <none>
+kube-system   nodelocaldns-vx2hn                         1/1     Running   0          116m   192.168.74.102   node1   <none>           <none>
