@@ -1,0 +1,210 @@
+
+helm repo add nginx-stable https://helm.nginx.com/stable
+helm repo update
+helm fetch nginx-stable/nginx-ingress 
+tar -xvf  nginx-ingress-0.12.1.tgz
+
+root@node1:~/module8# ls nginx-ingress
+Chart.yaml  README.md  crds  templates  values-icp.yaml  values-plus.yaml  values.yaml
+root@node1:~/module8# 
+
+./nginx-ingress/values.yaml 做了一点修改
+hostNetwork: true
+type: ClusterIP
+
+helm install --namespace ingress-nginx ingress-nginx ./nginx-ingress -f ./nginx-ingress/values.yaml
+
+
+root@node1:~/module8# k get ingressclass 
+NAME    CONTROLLER                     PARAMETERS   AGE
+nginx   nginx.org/ingress-controller   <none>       27m
+root@node1:~/module8# 
+
+
+root@node1:~/module8# k get all  -n ingress-nginx  
+NAME                                               READY   STATUS    RESTARTS   AGE
+pod/ingress-nginx-nginx-ingress-55bc74c8c4-nxf8f   1/1     Running   0          83s
+
+NAME                                          READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/ingress-nginx-nginx-ingress   1/1     1            1           83s
+
+NAME                                                     DESIRED   CURRENT   READY   AGE
+replicaset.apps/ingress-nginx-nginx-ingress-55bc74c8c4   1         1         1       83s
+root@node1:~/module8# 
+
+
+root@node1:~/module8# cat  ngdemo.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-nginx
+spec:
+  selector:
+    matchLabels:
+      app: my-nginx
+  template:
+    metadata:
+      labels:
+        app: my-nginx
+    spec:
+      containers:
+      - name: my-nginx
+        image: nginx
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: my-nginx
+  labels:
+    app: my-nginx
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    name: http
+  selector:
+    app: my-nginx
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: my-nginx
+  annotations:
+    kubernetes.io/ingress.class: "nginx"
+spec:
+  rules:
+  - host: ngdemo.qikqiak.com  # 将域名映射到 my-nginx 服务
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+           service:
+             name: my-nginx  
+             port:
+               number: 80
+root@node1:~/module8# k apply  -f ngdemo.yaml
+
+root@node1:~/module8# k get ingress
+NAME       CLASS    HOSTS                ADDRESS   PORTS   AGE
+my-nginx   <none>   ngdemo.qikqiak.com             80      20m
+root@node1:~/module8# 
+
+root@node1:~/module8# k get all | grep my-nginx 
+pod/my-nginx-7c4ff94949-9kjbb     1/1     Running   0          24m
+service/my-nginx             ClusterIP   10.233.22.210   <none>        80/TCP         24m
+deployment.apps/my-nginx     1/1     1            1           24m
+replicaset.apps/my-nginx-7c4ff94949     1         1         1       24m
+root@node1:~/module8# 
+
+echo  " 192.168.74.102 ngdemo.qikqiak.com " >> /etc/hosts  
+
+
+root@node1:~/module8# netstat  -antp  | grep "80 " 
+tcp        0      0 192.168.74.102:2380     0.0.0.0:*               LISTEN      1147/etcd           
+tcp        0      0 0.0.0.0:8080            0.0.0.0:*               LISTEN      112125/nginx: maste 
+tcp        0      0 0.0.0.0:80              0.0.0.0:*               LISTEN      112125/nginx: maste 
+
+
+root@node1:~/module8# curl  ngdemo.qikqiak.com 
+<!DOCTYPE html>
+<html>
+<head>
+<title>Welcome to nginx!</title>
+<style>
+html { color-scheme: light dark; }
+body { width: 35em; margin: 0 auto;
+font-family: Tahoma, Verdana, Arial, sans-serif; }
+</style>
+</head>
+<body>
+<h1>Welcome to nginx!</h1>
+<p>If you see this page, the nginx web server is successfully installed and
+working. Further configuration is required.</p>
+
+<p>For online documentation and support please refer to
+<a href="http://nginx.org/">nginx.org</a>.<br/>
+Commercial support is available at
+<a href="http://nginx.com/">nginx.com</a>.</p>
+
+<p><em>Thank you for using nginx.</em></p>
+</body>
+</html>
+root@node1:~/module8# 
+
+
+### tls  config 
+
+root@node1:~/module8/tls# openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout tls.key -out tls.crt -subj "/CN=qikqiak.com/O=qikqiak" -addext "subjectAltName = DNS:qikqiak.com"
+Generating a RSA private key
+............+++++
+..............................+++++
+writing new private key to 'tls.key'
+-----
+root@node1:~/module8/tls# ls
+tls.crt  tls.key
+root@node1:~/module8# 
+root@node1:~/module8/tls# kubectl create secret tls qikqiak-tls --cert=./tls.crt --key=./tls.key
+secret/qikqiak-tls created
+
+
+
+root@node1:~/module8/tls# k get secret 
+NAME                  TYPE                                  DATA   AGE
+qikqiak-tls           kubernetes.io/tls  
+
+
+
+root@node1:~/module8# curl -H "Host: qikqiak.com" https://ngdemo.qikqiak.com  -v -k
+*   Trying 192.168.74.102:443...
+* TCP_NODELAY set
+* Connected to ngdemo.qikqiak.com (192.168.74.102) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*   CAfile: /etc/ssl/certs/ca-certificates.crt
+  CApath: /etc/ssl/certs
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.2 (IN), TLS handshake, Certificate (11):
+* TLSv1.2 (IN), TLS handshake, Server key exchange (12):
+* TLSv1.2 (IN), TLS handshake, Server finished (14):
+* TLSv1.2 (OUT), TLS handshake, Client key exchange (16):
+* TLSv1.2 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.2 (OUT), TLS handshake, Finished (20):
+* TLSv1.2 (IN), TLS handshake, Finished (20):
+* SSL connection using TLSv1.2 / ECDHE-RSA-AES256-GCM-SHA384
+* ALPN, server accepted to use http/1.1
+* Server certificate:
+*  subject: CN=qikqiak.com; O=qikqiak
+*  start date: Mar  4 08:44:02 2022 GMT
+*  expire date: Mar  4 08:44:02 2023 GMT
+*  issuer: CN=qikqiak.com; O=qikqiak
+*  SSL certificate verify result: self signed certificate (18), continuing anyway.
+> GET / HTTP/1.1
+> Host: qikqiak.com
+> User-Agent: curl/7.68.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 404 Not Found
+< Server: nginx/1.21.6
+< Date: Fri, 04 Mar 2022 08:55:11 GMT
+< Content-Type: text/html
+< Content-Length: 153
+< Connection: keep-alive
+< 
+<html>
+<head><title>404 Not Found</title></head>
+<body>
+<center><h1>404 Not Found</h1></center>
+<hr><center>nginx/1.21.6</center>
+</body>
+</html>
+* Connection #0 to host ngdemo.qikqiak.com left intact
+root@node1:~/module8# 
+
+
+
