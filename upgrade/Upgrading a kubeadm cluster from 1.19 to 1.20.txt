@@ -1,0 +1,93 @@
+                                                                                        1.19-1.20 
+
+####Upgrading control plane nodes
+
+apt update
+apt-cache madison kubeadm
+# find the latest 1.20 version in the list
+# it should look like 1.20.x-00, where x is the latest patch
+
+# replace x in 1.20.x-00 with the latest patch version
+apt-mark unhold kubeadm && \
+apt-get update && apt-get install -y kubeadm=1.20.15-00 && \
+apt-mark hold kubeadm
+-
+# since apt-get version 1.1 you can also use the following method
+apt-get update && \
+apt-get install -y --allow-change-held-packages kubeadm=1.20.15-00
+
+
+
+
+# replace x in 1.20.x-00 with the latest patch version
+apt-mark unhold kubeadm && \
+apt-get update && apt-get install -y kubeadm=1.20.15-00 && \
+apt-mark hold kubeadm
+-
+# since apt-get version 1.1 you can also use the following method
+apt-get update && \
+apt-get install -y --allow-change-held-packages kubeadm=1.20.15-00
+
+
+kubeadm version
+
+
+kubeadm upgrade plan
+
+
+
+sudo kubeadm upgrade apply v1.20.15
+
+
+
+[apiclient] Found 1 Pods for label selector component=kube-scheduler
+[upgrade/staticpods] Component "kube-scheduler" upgraded successfully!
+[upgrade/postupgrade] Applying label node-role.kubernetes.io/control-plane='' to Nodes with label node-role.kubernetes.io/master='' (deprecated)
+[upload-config] Storing the configuration used in ConfigMap "kubeadm-config" in the "kube-system" Namespace
+[kubelet] Creating a ConfigMap "kubelet-config-1.20" in namespace kube-system with the configuration for the kubelets in the cluster
+[kubelet-start] Writing kubelet configuration to file "/var/lib/kubelet/config.yaml"
+[bootstrap-token] configured RBAC rules to allow Node Bootstrap tokens to get nodes
+[bootstrap-token] configured RBAC rules to allow Node Bootstrap tokens to post CSRs in order for nodes to get long term certificate credentials
+[bootstrap-token] configured RBAC rules to allow the csrapprover controller automatically approve CSRs from a Node Bootstrap Token
+[bootstrap-token] configured RBAC rules to allow certificate rotation for all node client certificates in the cluster
+[addons] Applied essential addon: CoreDNS
+[addons] Applied essential addon: kube-proxy
+
+[upgrade/successful] SUCCESS! Your cluster was upgraded to "v1.20.15". Enjoy!
+
+[upgrade/kubelet] Now that your control plane is upgraded, please proceed with upgrading your kubelets if you haven't already done so.
+
+
+####Upgrade worker nodes 
+
+
+# replace x in 1.20.x-00 with the latest patch version
+apt-mark unhold kubeadm && \
+apt-get update && apt-get install -y kubeadm=1.20.15-00 && \
+apt-mark hold kubeadm
+-
+# since apt-get version 1.1 you can also use the following method
+apt-get update && \
+apt-get install -y --allow-change-held-packages kubeadm=1.20.15-00
+
+
+sudo kubeadm upgrade node
+
+kubectl drain node1 --ignore-daemonsets
+
+
+
+# replace x in 1.20.x-00 with the latest patch version
+apt-mark unhold kubelet kubectl && \
+apt-get update && apt-get install -y kubelet=1.20.15-00 kubectl=1.20.15-00 && \
+apt-mark hold kubelet kubectl
+-
+# since apt-get version 1.1 you can also use the following method
+apt-get update && \
+apt-get install -y --allow-change-held-packages kubelet=1.20.15-00 kubectl=1.20.15-00
+
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+
+kubectl uncordon node1

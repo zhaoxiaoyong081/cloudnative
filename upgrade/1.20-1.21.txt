@@ -1,0 +1,46 @@
+
+# replace x in 1.21.10-00 with the latest patch version
+apt-mark unhold kubeadm && \
+apt-get update && apt-get install -y kubeadm=1.21.10-00 && \
+apt-mark hold kubeadm
+-
+# since apt-get version 1.1 you can also use the following method
+apt-get update && \
+apt-get install -y --allow-change-held-packages kubeadm=1.21.10-00
+
+
+
+kubeadm version
+
+
+kubeadm upgrade plan
+
+
+kubeadm upgrade apply v1.21.10
+
+
+Upgrade the kubelet and kubectl
+
+    # replace x in 1.21.10-00 with the latest patch version
+    apt-mark unhold kubelet kubectl && \
+    apt-get update && apt-get install -y kubelet=1.21.10-00 kubectl=1.21.10-00 && \
+    apt-mark hold kubelet kubectl
+    -
+    # since apt-get version 1.1 you can also use the following method
+    apt-get update && \
+    apt-get install -y --allow-change-held-packages kubelet=1.21.10-00 kubectl=1.21.10-00
+
+
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
+
+
+
+ # replace x in 1.21.x-00 with the latest patch version
+    apt-mark unhold kubelet kubectl && \
+    apt-get update && apt-get install -y kubelet=1.21.x-00 kubectl=1.21.x-00 && \
+    apt-mark hold kubelet kubectl
+    -
+    # since apt-get version 1.1 you can also use the following method
+    apt-get update && \
+    apt-get install -y --allow-change-held-packages kubelet=1.21.x-00 kubectl=1.21.x-00

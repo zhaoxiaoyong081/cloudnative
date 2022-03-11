@@ -1,0 +1,210 @@
+
+### Download harbor helm chart
+
+```sh
+helm repo add harbor https://helm.goharbor.io
+helm fetch harbor/harbor --untar
+kubectl create ns harbor
+```
+
+### Update values.yaml
+
+```sh
+vi .harbor/values.yaml
+```
+
+And change:
+
+```yaml
+expose:
+  type: nodePort
+tls:
+  commonName: 'core.harbor.domain'
+
+persistence: false
+```
+
+### Install helm chart
+
+```sh
+helm install harbor ./harbor -n harbor
+```
+
+root@master:/etc/docker/certs.d/core.harbor.domain# k get all  -n harbor  
+NAME                                        READY   STATUS    RESTARTS   AGE
+pod/harbor-chartmuseum-847b68dbcc-p4rq2     1/1     Running   1          7h16m
+pod/harbor-core-77758d4d64-t82h6            1/1     Running   2          7h16m
+pod/harbor-database-0                       1/1     Running   1          7h16m
+pod/harbor-jobservice-6bbcb65b9c-crkt8      1/1     Running   3          7h16m
+pod/harbor-nginx-698775445f-6mwjk           1/1     Running   2          7h16m
+pod/harbor-notary-server-6975779cf9-m46b8   1/1     Running   6          7h16m
+pod/harbor-notary-signer-556ffb7ff8-9xg9j   1/1     Running   6          7h16m
+pod/harbor-portal-6847f445f4-9dfzf          1/1     Running   2          7h16m
+pod/harbor-redis-0                          1/1     Running   2          7h16m
+pod/harbor-registry-86cdc6c8f-pccr9         2/2     Running   2          7h16m
+pod/harbor-trivy-0                          1/1     Running   1          6h30m
+
+NAME                           TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                                     AGE
+service/harbor                 NodePort    10.110.215.52    <none>        80:30002/TCP,443:30003/TCP,4443:30004/TCP   7h16m
+service/harbor-chartmuseum     ClusterIP   10.107.148.223   <none>        80/TCP                                      7h16m
+service/harbor-core            ClusterIP   10.104.177.200   <none>        80/TCP                                      7h16m
+service/harbor-database        ClusterIP   10.111.206.121   <none>        5432/TCP                                    7h16m
+service/harbor-jobservice      ClusterIP   10.103.98.245    <none>        80/TCP                                      7h16m
+service/harbor-notary-server   ClusterIP   10.100.209.180   <none>        4443/TCP                                    7h16m
+service/harbor-notary-signer   ClusterIP   10.96.210.32     <none>        7899/TCP                                    7h16m
+service/harbor-portal          ClusterIP   10.101.170.166   <none>        80/TCP                                      7h16m
+service/harbor-redis           ClusterIP   10.106.187.68    <none>        6379/TCP                                    7h16m
+service/harbor-registry        ClusterIP   10.98.68.4       <none>        5000/TCP,8080/TCP                           7h16m
+service/harbor-trivy           ClusterIP   10.97.241.171    <none>        8080/TCP                                    7h16m
+
+NAME                                   READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/harbor-chartmuseum     1/1     1            1           7h16m
+deployment.apps/harbor-core            1/1     1            1           7h16m
+deployment.apps/harbor-jobservice      1/1     1            1           7h16m
+deployment.apps/harbor-nginx           1/1     1            1           7h16m
+deployment.apps/harbor-notary-server   1/1     1            1           7h16m
+deployment.apps/harbor-notary-signer   1/1     1            1           7h16m
+deployment.apps/harbor-portal          1/1     1            1           7h16m
+deployment.apps/harbor-registry        1/1     1            1           7h16m
+
+NAME                                              DESIRED   CURRENT   READY   AGE
+replicaset.apps/harbor-chartmuseum-847b68dbcc     1         1         1       7h16m
+replicaset.apps/harbor-core-77758d4d64            1         1         1       7h16m
+replicaset.apps/harbor-jobservice-6bbcb65b9c      1         1         1       7h16m
+replicaset.apps/harbor-nginx-698775445f           1         1         1       7h16m
+replicaset.apps/harbor-notary-server-6975779cf9   1         1         1       7h16m
+replicaset.apps/harbor-notary-signer-556ffb7ff8   1         1         1       7h16m
+replicaset.apps/harbor-portal-6847f445f4          1         1         1       7h16m
+replicaset.apps/harbor-registry-86cdc6c8f         1         1         1       7h16m
+
+NAME                               READY   AGE
+statefulset.apps/harbor-database   1/1     7h16m
+statefulset.apps/harbor-redis      1/1     7h16m
+statefulset.apps/harbor-trivy      1/1     7h16m
+root@master:/etc/docker/certs.d/core.harbor.domain# 
+root@master:/etc/docker/certs.d/core.harbor.domain# 
+
+
+### Copy the downloaded ca.crt to vm docker certs configuration folder
+kubectl get secrets  harbor-nginx     -o jsonpath="{.data.ca\.crt}" -n harbor  | base64 --decode 
+
+root@master:/etc/docker/certs.d/core.harbor.domain# kubectl get secrets  harbor-nginx     -o jsonpath="{.data.ca\.crt}" -n harbor  | base64 --decode
+-----BEGIN CERTIFICATE-----
+MIIDEzCCAfugAwIBAgIQGmUMRvTsafd6TKvPyMSWAjANBgkqhkiG9w0BAQsFADAU
+MRIwEAYDVQQDEwloYXJib3ItY2EwHhcNMjIwMzA3MDMyMDI5WhcNMjMwMzA3MDMy
+MDI5WjAUMRIwEAYDVQQDEwloYXJib3ItY2EwggEiMA0GCSqGSIb3DQEBAQUAA4IB
+DwAwggEKAoIBAQCrS0OmDqiN2X5qFV2JyD6OthiKDUWrJRdmrSJzOlvHbX54mQ3k
+7K/G09IB+nxd1uNzfWriP1B7zrCZe3hbu2R0qC2kZKqLpWKFyPQmxZwQFA/hA4Bc
+qBUjL6vcTNzmx/+mYPZc2O1msskC6nytRKwo5QLzji4YQdU+xjTnJCq/FV0mTXWp
+GLRJaUX0UN7WqPJbec2DCQ7wjlcUIWOWmgNgseMBERrEmV/TSWtrp4kHEganRss/
+whsk8+hQdU39hkcMJ1GpKVA3MF5hVxIZUSZ79MuqvnCvvVeX70fCBKuLjl19WHZc
+XQc5Yzei9KbIJsZpEDGDmp5ZyeSgvJEJqekhAgMBAAGjYTBfMA4GA1UdDwEB/wQE
+AwICpDAdBgNVHSUEFjAUBggrBgEFBQcDAQYIKwYBBQUHAwIwDwYDVR0TAQH/BAUw
+AwEB/zAdBgNVHQ4EFgQUiaq1ZRKNdOZ7S5j54yejtLUybt0wDQYJKoZIhvcNAQEL
+BQADggEBAAyz0ZMZFLTrqZMl49TlvE6IvpEa4gbPXEWOOsex05p6p1oeW/8iG4F5
+E+z/MBGM64a2NjjffvVt0z3a8rU3HH8P4R8i0WtEkZC/sKfSo/UfdqCVyTxrg+6c
+iMXab5n3Gr1pwx74EE2Si0q5LtKmaq6fx4siSrYeCELQRyTZYtsj1U02vvRCZ+5q
+XVs28KKqUNbR4TFgqYxcDLljiHrSl9b3jNbWXRq8cWTV1u02DDZsHU1mrnDP37Ag
+DwnXpAxNiLhJIeSEDzcwdhfnqcVST0DYCX/QwbSkkCEWe7uNuwVlS7Qhd2CCRu7A
+wSlYFGH8Fhvor6wAY5BnnIEyOHFKTDQ=
+-----END CERTIFICATE-----
+
+
+
+```sh
+mkdir /etc/docker/certs.d/core.harbor.domain
+copy the ca.crt to this folder
+systemctl restart docker
+```
+
+echo  "10.110.215.52  core.harbor.domain " >> /etc/hosts
+
+root@master:/etc/docker/certs.d/core.harbor.domain# docker login -u admin -p Harbor12345 core.harbor.domain
+WARNING! Using --password via the CLI is insecure. Use --password-stdin.
+WARNING! Your password will be stored unencrypted in /root/.docker/config.json.
+Configure a credential helper to remove this warning. See
+https://docs.docker.com/engine/reference/commandline/login/#credentials-store
+
+Login Succeeded
+root@master:/etc/docker/certs.d/core.harbor.domain# 
+
+
+root@master:/etc/docker/certs.d/core.harbor.domain# docker tag nginx:alpine core.harbor.domain/library/nginx:alpine
+root@master:/etc/docker/certs.d/core.harbor.domain# docker push  core.harbor.domain/library/nginx:alpine
+The push refers to repository [core.harbor.domain/library/nginx]
+6fda88393b8b: Pushed 
+a770f8eba3cb: Pushed 
+318191938fd7: Pushed 
+89f4d03665ce: Pushed 
+67bae81de3dc: Pushed 
+8d3ac3489996: Pushed 
+alpine: digest: sha256:050385609d832fae11b007fbbfba77d0bba12bf72bc0dca0ac03e09b1998580f size: 1568
+root@master:/etc/docker/certs.d/core.harbor.domain# 
+
+### Check repositories and blobs
+
+root@master:/etc/docker/certs.d/core.harbor.domain# kubectl exec -it harbor-registry-86cdc6c8f-pccr9 -n harbor bash
+kubectl exec [POD] [COMMAND] is DEPRECATED and will be removed in a future version. Use kubectl exec [POD] -- [COMMAND] instead.
+Defaulting container name to registry.
+Use 'kubectl describe pod/harbor-registry-86cdc6c8f-pccr9 -n harbor' to see all of the containers in this pod.
+harbor [ / ]$ 
+harbor [ / ]$ ls -la /storage/docker/registry/v2/repositories/
+total 12
+drwxr-sr-x 3 harbor harbor 4096 2022-03-07 11:06 .
+drwxr-sr-x 4 harbor harbor 4096 2022-03-07 11:06 ..
+drwxr-sr-x 3 harbor harbor 4096 2022-03-07 11:06 library
+harbor [ / ]$ ls -la /storage/docker/registry/v2/blobs
+total 12
+drwxr-sr-x  3 harbor harbor 4096 2022-03-07 11:06 .
+drwxr-sr-x  4 harbor harbor 4096 2022-03-07 11:06 ..
+drwxr-sr-x 10 harbor harbor 4096 2022-03-07 11:06 sha256
+harbor [ / ]$ 
+
+
+### Database operator
+
+root@master:/etc/docker/certs.d/core.harbor.domain# kubectl exec -it harbor-database-0 -n harbor -- bash
+
+postgres [ / ]$ psql -U postgres -d postgres -h 127.0.0.1 -p 5432
+psql (13.5)
+Type "help" for help.
+
+postgres=# \c registry
+You are now connected to database "registry" as user "postgres".
+registry=# select * from harbor_user;
+ user_id | username  | email |             password             |    realname    |    comment     | deleted | reset_uuid |               salt               | sysadmin_flag |       creation_
+time        |        update_time         | password_version 
+---------+-----------+-------+----------------------------------+----------------+----------------+---------+------------+----------------------------------+---------------+----------------
+------------+----------------------------+------------------
+       2 | anonymous |       |                                  | anonymous user | anonymous user | t       |            |                                  | f             | 2022-03-07 03:2
+4:51.545705 | 2022-03-07 03:24:52.02115  | sha1
+       1 | admin     |       | 73f92851db336f338ca22988b751e7aa | system admin   | admin user     | f       |            | XlCVmOhgqAHhnEVFDLhQynyS23mYIbY0 | t             | 2022-03-07 03:2
+4:51.545705 | 2022-03-07 03:24:52.405633 | sha256
+(2 rows)
+
+registry=# \dt
+                    List of relations
+ Schema |            Name             | Type  |  Owner   
+--------+-----------------------------+-------+----------
+ public | access                      | table | postgres
+ public | alembic_version             | table | postgres
+ public | artifact                    | table | postgres
+ public | artifact_blob               | table | postgres
+ public | artifact_reference          | table | postgres
+ public | artifact_trash              | table | postgres
+ public | audit_log                   | table | postgres
+ public | blob                        | table | postgres
+ public | cve_allowlist               | table | postgres
+ public | data_migrations             | table | postgres
+ public | execution                   | table | postgres
+ public | harbor_label                | table | postgres
+ public | harbor_resource_label       | table | postgres
+ public | harbor_user                 | table | postgres
+ public | immutable_tag_rule          | table | postgres
+ public | job_log                     | table | postgres
+ public | label_reference             | table | postgres
+ public | notification_job            | table | postgres
+ public | notification_policy         | table | postgres
+ public | oidc_user                   | table | postgres
+ public | p2p_preheat_instance        | table | postgres
+ public | p2p_preheat_policy          | table | postgres

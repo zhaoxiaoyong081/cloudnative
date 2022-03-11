@@ -1,0 +1,41 @@
+
+
+apt update
+apt-cache madison kubeadm
+
+
+
+# replace x in 1.22.7-00 with the latest patch version
+apt-mark unhold kubeadm && \
+apt-get update && apt-get install -y kubeadm=1.22.7-00 && \
+apt-mark hold kubeadm
+
+
+
+
+kubeadm version
+
+
+
+kubeadm upgrade plan
+
+
+
+sudo kubeadm upgrade apply v1.22.7
+
+
+
+# replace x in 1.22.7-00 with the latest patch version
+apt-mark unhold kubelet kubectl && \
+apt-get update && apt-get install -y kubelet=1.22.7-00 kubectl=1.22.7-00 && \
+apt-mark hold kubelet kubectl
+
+
+
+# replace x in 1.22.x-00 with the latest patch version
+apt-mark unhold kubelet kubectl && \
+apt-get update && apt-get install -y kubelet=1.22.7-00 kubectl=1.22.7-00 && \
+apt-mark hold kubelet kubectl
+
+sudo systemctl daemon-reload
+sudo systemctl restart kubelet
