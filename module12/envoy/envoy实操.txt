@@ -1,0 +1,141 @@
+root@node1:~/101-master/module12/envoy# ls
+envoy-deploy.yaml  envoy.yaml  readme.MD  simple.yaml
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# kubectl create -f simple.yaml
+deployment.apps/simple created
+service/simple created
+root@node1:~/101-master/module12/envoy# kubectl create configmap envoy-config --from-file=envoy.yaml
+configmap/envoy-config created
+root@node1:~/101-master/module12/envoy# kubectl create -f envoy-deploy.yaml
+deployment.apps/envoy created
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# k get pod 
+NAME                                            READY   STATUS              RESTARTS   AGE
+envoy-fb5d77cc9-gd9dp                           0/1     ContainerCreating   0          19s
+httpserver-5b5fc75b98-wjwbm                     1/1     Running             1          10d
+loki-0                                          1/1     Running             1          10d
+loki-grafana-5675588b99-z8nq6                   2/2     Running             2          10d
+loki-kube-state-metrics-78b8f7bd68-7spgb        1/1     Running             1          10d
+loki-prometheus-alertmanager-84fd8c6574-rx4m5   2/2     Running             2          10d
+loki-prometheus-node-exporter-bdc65             1/1     Running             1          10d
+loki-prometheus-node-exporter-mcxdb             1/1     Running             0          6m28s
+loki-prometheus-pushgateway-85f746bb99-jbvx5    1/1     Running             1          10d
+loki-prometheus-server-85fc8bbd75-wjm69         2/2     Running             2          10d
+loki-promtail-27jxs                             1/1     Running             0          6m28s
+loki-promtail-2fsvg                             1/1     Running             1          10d
+my-nginx-7c4ff94949-9kjbb                       1/1     Running             3          17d
+simple-7697f7dbdd-z8sgb                         0/1     ContainerCreating   0          49s
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# k get pod 
+NAME                                            READY   STATUS    RESTARTS   AGE
+envoy-fb5d77cc9-gd9dp                           1/1     Running   0          6m3s
+httpserver-5b5fc75b98-wjwbm                     1/1     Running   1          10d
+loki-0                                          1/1     Running   1          10d
+loki-grafana-5675588b99-z8nq6                   2/2     Running   2          10d
+loki-kube-state-metrics-78b8f7bd68-7spgb        1/1     Running   1          10d
+loki-prometheus-alertmanager-84fd8c6574-rx4m5   2/2     Running   2          10d
+loki-prometheus-node-exporter-bdc65             1/1     Running   1          10d
+loki-prometheus-node-exporter-mcxdb             1/1     Running   0          12m
+loki-prometheus-pushgateway-85f746bb99-jbvx5    1/1     Running   1          10d
+loki-prometheus-server-85fc8bbd75-wjm69         2/2     Running   2          10d
+loki-promtail-27jxs                             1/1     Running   0          12m
+loki-promtail-2fsvg                             1/1     Running   1          10d
+my-nginx-7c4ff94949-9kjbb                       1/1     Running   3          17d
+simple-7697f7dbdd-z8sgb                         1/1     Running   0          6m33s
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# k get svc  
+NAME                            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+httpserver-service              NodePort    10.233.28.150   <none>        80:31000/TCP   18d
+kubernetes                      ClusterIP   10.233.0.1      <none>        443/TCP        18d
+loki                            ClusterIP   10.233.32.221   <none>        3100/TCP       10d
+loki-grafana                    NodePort    10.233.0.157    <none>        80:31656/TCP   10d
+loki-headless                   ClusterIP   None            <none>        3100/TCP       10d
+loki-kube-state-metrics         ClusterIP   10.233.24.90    <none>        8080/TCP       10d
+loki-prometheus-alertmanager    ClusterIP   10.233.61.28    <none>        80/TCP         10d
+loki-prometheus-node-exporter   ClusterIP   None            <none>        9100/TCP       10d
+loki-prometheus-pushgateway     ClusterIP   10.233.41.154   <none>        9091/TCP       10d
+loki-prometheus-server          NodePort    10.233.14.142   <none>        80:32538/TCP   10d
+my-nginx                        ClusterIP   10.233.22.210   <none>        80/TCP         17d
+simple                          ClusterIP   10.233.18.165   <none>        80/TCP         6m55s
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# k get  pod  -owide  
+NAME                                            READY   STATUS    RESTARTS   AGE     IP               NODE    NOMINATED NODE   READINESS GATES
+envoy-fb5d77cc9-gd9dp                           1/1     Running   0          6m40s   10.233.96.6      node2   <none>           <none>
+httpserver-5b5fc75b98-wjwbm                     1/1     Running   1          10d     10.233.90.38     node1   <none>           <none>
+loki-0                                          1/1     Running   1          10d     10.233.90.40     node1   <none>           <none>
+loki-grafana-5675588b99-z8nq6                   2/2     Running   2          10d     10.233.90.48     node1   <none>           <none>
+loki-kube-state-metrics-78b8f7bd68-7spgb        1/1     Running   1          10d     10.233.90.42     node1   <none>           <none>
+loki-prometheus-alertmanager-84fd8c6574-rx4m5   2/2     Running   2          10d     10.233.90.43     node1   <none>           <none>
+loki-prometheus-node-exporter-bdc65             1/1     Running   1          10d     192.168.74.102   node1   <none>           <none>
+loki-prometheus-node-exporter-mcxdb             1/1     Running   0          12m     192.168.74.103   node2   <none>           <none>
+loki-prometheus-pushgateway-85f746bb99-jbvx5    1/1     Running   1          10d     10.233.90.39     node1   <none>           <none>
+loki-prometheus-server-85fc8bbd75-wjm69         2/2     Running   2          10d     10.233.90.41     node1   <none>           <none>
+loki-promtail-27jxs                             1/1     Running   0          12m     10.233.96.3      node2   <none>           <none>
+loki-promtail-2fsvg                             1/1     Running   1          10d     10.233.90.46     node1   <none>           <none>
+my-nginx-7c4ff94949-9kjbb                       1/1     Running   3          17d     10.233.90.47     node1   <none>           <none>
+simple-7697f7dbdd-z8sgb                         1/1     Running   0          7m10s   10.233.96.5      node2   <none>           <none>
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# curl  10.233.96.6:10000
+404 page not found
+root@node1:~/101-master/module12/envoy# curl  10.233.96.6:10000/hello
+hello [stranger]
+===================Details of the http request header:============
+X-Forwarded-Proto=[http]
+X-Request-Id=[9c8fa615-08ea-4219-a80e-f64d4a841422]
+X-Envoy-Expected-Rq-Timeout-Ms=[15000]
+User-Agent=[curl/7.68.0]
+Accept=[*/*]
+root@node1:~/101-master/module12/envoy# curl  10.233.96.6:10000/healthz
+ok
+
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# ping 10.233.96.6
+PING 10.233.96.6 (10.233.96.6) 56(84) bytes of data.
+64 bytes from 10.233.96.6: icmp_seq=1 ttl=63 time=7.24 ms
+64 bytes from 10.233.96.6: icmp_seq=2 ttl=63 time=0.518 ms
+^C
+--- 10.233.96.6 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1001ms
+rtt min/avg/max/mdev = 0.518/3.880/7.243/3.362 ms
+root@node1:~/101-master/module12/envoy# k get svc  
+NAME                            TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)        AGE
+httpserver-service              NodePort    10.233.28.150   <none>        80:31000/TCP   18d
+kubernetes                      ClusterIP   10.233.0.1      <none>        443/TCP        18d
+loki                            ClusterIP   10.233.32.221   <none>        3100/TCP       10d
+loki-grafana                    NodePort    10.233.0.157    <none>        80:31656/TCP   10d
+loki-headless                   ClusterIP   None            <none>        3100/TCP       10d
+loki-kube-state-metrics         ClusterIP   10.233.24.90    <none>        8080/TCP       10d
+loki-prometheus-alertmanager    ClusterIP   10.233.61.28    <none>        80/TCP         10d
+loki-prometheus-node-exporter   ClusterIP   None            <none>        9100/TCP       10d
+loki-prometheus-pushgateway     ClusterIP   10.233.41.154   <none>        9091/TCP       10d
+loki-prometheus-server          NodePort    10.233.14.142   <none>        80:32538/TCP   10d
+my-nginx                        ClusterIP   10.233.22.210   <none>        80/TCP         17d
+simple                          ClusterIP   10.233.18.165   <none>        80/TCP         8m32s
+root@node1:~/101-master/module12/envoy# ping 10.233.18.165 
+PING 10.233.18.165 (10.233.18.165) 56(84) bytes of data.
+64 bytes from 10.233.18.165: icmp_seq=1 ttl=64 time=0.079 ms
+64 bytes from 10.233.18.165: icmp_seq=2 ttl=64 time=0.059 ms
+^C
+--- 10.233.18.165 ping statistics ---
+2 packets transmitted, 2 received, 0% packet loss, time 1023ms
+rtt min/avg/max/mdev = 0.059/0.069/0.079/0.010 ms
+root@node1:~/101-master/module12/envoy# telnet  10.233.18.165 80 
+Trying 10.233.18.165...
+Connected to 10.233.18.165.
+Escape character is '^]'.
+^]
+telnet> 	q
+Connection closed.
+root@node1:~/101-master/module12/envoy# 
+root@node1:~/101-master/module12/envoy# curl  10.233.18.165:80
+404 page not found
+root@node1:~/101-master/module12/envoy# curl  10.233.18.165:80/hello
+hello [stranger]
+===================Details of the http request header:============
+User-Agent=[curl/7.68.0]
+Accept=[*/*]
+root@node1:~/101-master/module12/envoy# 

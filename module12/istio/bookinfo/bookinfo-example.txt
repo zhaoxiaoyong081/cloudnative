@@ -1,0 +1,116 @@
+
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# ls
+LICENSE  README.md  bin  manifest.yaml  manifests  samples  tools
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# 
+
+
+k create ns  istio-app
+
+kubectl label namespace istio-app  istio-injection=enabled
+
+
+kubectl apply -f samples/bookinfo/platform/kube/bookinfo.yaml -n istio-app
+
+
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# k get all   -n istio-app 
+NAME                                  READY   STATUS    RESTARTS   AGE
+pod/details-v1-79f774bdb9-k5tkn       2/2     Running   0          8m43s
+pod/productpage-v1-6b746f74dc-5mgxf   2/2     Running   0          8m43s
+pod/ratings-v1-b6994bb9-pdpqg         2/2     Running   0          8m42s
+pod/reviews-v1-545db77b95-2r284       2/2     Running   0          8m42s
+pod/reviews-v2-7bf8c9648f-4sq6s       2/2     Running   0          8m43s
+pod/reviews-v3-84779c7bbc-cxqq5       2/2     Running   0          8m42s
+
+NAME                  TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)    AGE
+service/details       ClusterIP   10.233.56.125   <none>        9080/TCP   8m44s
+service/productpage   ClusterIP   10.233.18.13    <none>        9080/TCP   8m44s
+service/ratings       ClusterIP   10.233.4.110    <none>        9080/TCP   8m44s
+service/reviews       ClusterIP   10.233.48.162   <none>        9080/TCP   8m44s
+
+NAME                             READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/details-v1       1/1     1            1           8m44s
+deployment.apps/productpage-v1   1/1     1            1           8m44s
+deployment.apps/ratings-v1       1/1     1            1           8m44s
+deployment.apps/reviews-v1       1/1     1            1           8m44s
+deployment.apps/reviews-v2       1/1     1            1           8m44s
+deployment.apps/reviews-v3       1/1     1            1           8m44s
+
+NAME                                        DESIRED   CURRENT   READY   AGE
+replicaset.apps/details-v1-79f774bdb9       1         1         1       8m44s
+replicaset.apps/productpage-v1-6b746f74dc   1         1         1       8m44s
+replicaset.apps/ratings-v1-b6994bb9         1         1         1       8m44s
+replicaset.apps/reviews-v1-545db77b95       1         1         1       8m44s
+replicaset.apps/reviews-v2-7bf8c9648f       1         1         1       8m44s
+replicaset.apps/reviews-v3-84779c7bbc       1         1         1       8m44s
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# 
+
+现在应用的服务都部署成功并启动了，如果我们需要在集群外部访问，就需要添加一个 istio gateway，gateway 相当于 k8s 的 ingress controller 和 ingress，它为 HTTP/TCP 流量配置负载均衡，通常在服务网格边缘作为应用的 ingress 流量管理。
+
+创建一个 Ingress gateway:
+
+
+kubectl apply -f samples/bookinfo/networking/bookinfo-gateway.yaml  -n istio-app 
+
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# k get gateway  -n istio-app 
+NAME               AGE
+bookinfo-gateway   72s
+
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# kubectl edit  svc istio-ingressgateway -n istio-system 
+service/istio-ingressgateway edited
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# 
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# kubectl get svc -n istio-system
+NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                                      AGE
+istio-egressgateway    ClusterIP   10.233.8.209    <none>        80/TCP,443/TCP                                                               59m
+istio-ingressgateway   NodePort    10.233.60.175   <none>        15021:31172/TCP,80:31965/TCP,443:32156/TCP,31400:32381/TCP,15443:31200/TCP   59m
+istiod                 ClusterIP   10.233.39.204   <none>        15010/TCP,15012/TCP,443/TCP,15014/TCP                                        60m
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# 
+
+
+http://192.168.74.102:31965/productpage
+
+
+
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# kubectl apply -f samples/addons
+serviceaccount/grafana created
+configmap/grafana created
+service/grafana created
+deployment.apps/grafana created
+configmap/istio-grafana-dashboards created
+configmap/istio-services-grafana-dashboards created
+deployment.apps/jaeger created
+service/tracing created
+service/zipkin created
+service/jaeger-collector created
+serviceaccount/kiali created
+configmap/kiali created
+clusterrole.rbac.authorization.k8s.io/kiali-viewer created
+clusterrole.rbac.authorization.k8s.io/kiali created
+clusterrolebinding.rbac.authorization.k8s.io/kiali created
+role.rbac.authorization.k8s.io/kiali-controlplane created
+rolebinding.rbac.authorization.k8s.io/kiali-controlplane created
+service/kiali created
+deployment.apps/kiali created
+serviceaccount/prometheus created
+configmap/prometheus created
+clusterrole.rbac.authorization.k8s.io/prometheus created
+clusterrolebinding.rbac.authorization.k8s.io/prometheus created
+service/prometheus created
+deployment.apps/prometheus created
+
+
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2# kubectl get pods -n istio-system
+NAME                                    READY   STATUS              RESTARTS   AGE
+grafana-69ccf87b97-hvh2g                0/1     Running             0          46s
+istio-egressgateway-7967d4d9d9-xh87k    1/1     Running             2          127m
+istio-ingressgateway-5464d78db9-9w9z9   1/1     Running             2          127m
+istiod-56dbb6c987-5slr9                 1/1     Running             2          127m
+jaeger-648f4f4ddb-xh5dw                 0/1     ContainerCreating   0          46s
+kiali-5ccffdfd97-zsf8r                  0/1     ContainerCreating   0          45s
+prometheus-f675ff955-lg54j              0/2     ContainerCreating   0          45s
+root@node1:~/101-master/module12/istio/installation/istio-1.13.2#
+
+
+
+
+
+

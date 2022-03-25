@@ -1,0 +1,33 @@
+
+
+
+
+https://kubernetes.default
+
+default 
+
+
+http://jenkins
+
+cncamp/inbound-agent
+
+
+jnlp-slave
+
+
+cncamp/inbound-agent
+
+
+
+
+${computer.jnlpmac} ${computer.name}
+
+
+root@master:/var/lib/docker/image# k get pod 
+NAME                                  READY   STATUS              RESTARTS       AGE
+jenkins-0                             1/1     Running             0              22m
+jnlp-slave-wt0sm                      0/2     ContainerCreating   0              64s
+
+
+
+
