@@ -1,0 +1,192 @@
+
+##http-gw 
+kubectl create ns simple
+kubectl create -f simple.yaml -n simple
+kubectl create -f istio-specs.yaml -n simple
+
+root@node1:~/101-master/module12/istio/1.http-gw# k get all  -nsimple  
+NAME                          READY   STATUS    RESTARTS   AGE
+pod/simple-7697f7dbdd-rd55z   1/1     Running   0          51m
+
+NAME             TYPE        CLUSTER-IP     EXTERNAL-IP   PORT(S)   AGE
+service/simple   ClusterIP   10.233.61.29   <none>        80/TCP    51m
+
+NAME                     READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/simple   1/1     1            1           51m
+
+NAME                                DESIRED   CURRENT   READY   AGE
+replicaset.apps/simple-7697f7dbdd   1         1         1       51m
+
+root@node1:~/101-master/module12/istio/1.http-gw# k get VirtualService   -n simple  
+NAME     GATEWAYS     HOSTS                  AGE
+simple   ["simple"]   ["simple.cncamp.io"]   53m
+root@node1:~/101-master/module12/istio/1.http-gw# k get gw  -n simple  
+NAME     AGE
+simple   53m
+
+
+root@node1:~/101-master/module12/istio/1.http-gw# k get svc  -n  istio-system   | grep ingress
+istio-ingressgateway   NodePort    10.233.60.175   <none>        15021:31172/TCP,80:31965/TCP,443:32156/TCP,31400:32381/TCP,15443:31200/TCP   47h
+root@node1:~/101-master/module12/istio/1.http-gw# 
+
+
+root@node1:~/101-master/module12/istio/1.http-gw#  curl -H "Host: simple.cncamp.io" 10.233.60.175/hello  -v
+*   Trying 10.233.60.175:80...
+* TCP_NODELAY set
+* Connected to 10.233.60.175 (10.233.60.175) port 80 (#0)
+> GET /hello HTTP/1.1
+> Host: simple.cncamp.io
+> User-Agent: curl/7.68.0
+> Accept: */*
+> 
+* Mark bundle as not supporting multiuse
+< HTTP/1.1 200 OK
+< date: Fri, 25 Mar 2022 08:01:39 GMT
+< content-length: 1660
+< content-type: text/plain; charset=utf-8
+< x-envoy-upstream-service-time: 1108
+< server: istio-envoy
+< 
+hello [stranger]
+
+
+##https-gw 
+kubectl create ns securesvc
+kubectl label ns securesvc istio-injection=enabled
+kubectl create -f httpserver.yaml -n securesvc
+
+
+openssl req -x509 -sha256 -nodes -days 365 -newkey rsa:2048 -subj '/O=cncamp Inc./CN=*.cncamp.io' -keyout cncamp.io.key -out cncamp.io.crt
+kubectl create -n istio-system secret tls cncamp-credential --key=cncamp.io.key --cert=cncamp.io.crt
+kubectl apply -f istio-specs.yaml -n securesvc
+
+ k get svc  -n  istio-system   | grep ingress
+istio-ingressgateway   NodePort    10.233.60.175   <none>        15021:31172/TCP,80:31965/TCP,443:32156/TCP,31400:32381/TCP,15443:31200/TCP   2d
+
+
+curl --resolve httpsserver.cncamp.io:443:10.233.60.175  https://httpsserver.cncamp.io/healthz -v -k
+
+
+root@node1:~/101-master/module12/istio/3.https-gw# curl --resolve httpsserver.cncamp.io:443:10.233.60.175  https://httpsserver.cncamp.io/healthz -v -k
+* Added httpsserver.cncamp.io:443:10.233.60.175 to DNS cache
+* Hostname httpsserver.cncamp.io was found in DNS cache
+*   Trying 10.233.60.175:443...
+* TCP_NODELAY set
+* Connected to httpsserver.cncamp.io (10.233.60.175) port 443 (#0)
+* ALPN, offering h2
+* ALPN, offering http/1.1
+* successfully set certificate verify locations:
+*   CAfile: /etc/ssl/certs/ca-certificates.crt
+  CApath: /etc/ssl/certs
+* TLSv1.3 (OUT), TLS handshake, Client hello (1):
+* TLSv1.3 (IN), TLS handshake, Server hello (2):
+* TLSv1.3 (IN), TLS handshake, Encrypted Extensions (8):
+* TLSv1.3 (IN), TLS handshake, Certificate (11):
+* TLSv1.3 (IN), TLS handshake, CERT verify (15):
+* TLSv1.3 (IN), TLS handshake, Finished (20):
+* TLSv1.3 (OUT), TLS change cipher, Change cipher spec (1):
+* TLSv1.3 (OUT), TLS handshake, Finished (20):
+* SSL connection using TLSv1.3 / TLS_AES_256_GCM_SHA384
+* ALPN, server accepted to use h2
+* Server certificate:
+*  subject: O=cncamp Inc.; CN=*.cncamp.io
+*  start date: Mar 25 08:28:31 2022 GMT
+*  expire date: Mar 25 08:28:31 2023 GMT
+*  issuer: O=cncamp Inc.; CN=*.cncamp.io
+*  SSL certificate verify result: self signed certificate (18), continuing anyway.
+* Using HTTP2, server supports multi-use
+* Connection state changed (HTTP/2 confirmed)
+* Copying HTTP/2 data in stream buffer to connection buffer after upgrade: len=0
+* Using Stream ID: 1 (easy handle 0x561d6cd84880)
+> GET /healthz HTTP/2
+> Host: httpsserver.cncamp.io
+> user-agent: curl/7.68.0
+> accept: */*
+> 
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* TLSv1.3 (IN), TLS handshake, Newsession Ticket (4):
+* old SSL session ID is stale, removing
+* Connection state changed (MAX_CONCURRENT_STREAMS == 2147483647)!
+< HTTP/2 200 
+< date: Fri, 25 Mar 2022 08:38:14 GMT
+< content-length: 3
+< content-type: text/plain; charset=utf-8
+< x-envoy-upstream-service-time: 68
+< server: istio-envoy
+< 
+ok
+* Connection #0 to host httpsserver.cncamp.io left intact
+root@node1:~/101-master/module12/istio/3.https-gw# 
+
+
+##tracing
+
+kubectl apply -f jaeger.yaml
+kubectl edit configmap istio -n istio-system
+set tracing.sampling=100
+
+
+### Deploy tracing
+```sh
+kubectl create ns tracing
+kubectl label ns tracing istio-injection=enabled
+kubectl -n tracing apply -f service0.yaml
+kubectl -n tracing apply -f service1.yaml
+kubectl -n tracing apply -f service2.yaml
+kubectl apply -f istio-specs.yaml -n tracing
+```
+
+### Check ingress ip
+
+root@node1:~/101-master/module12/istio/tracing# k get svc -nistio-system 
+NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)                                                                      AGE
+istio-egressgateway    ClusterIP   10.233.8.209    <none>        80/TCP,443/TCP                                                               2d1h
+istio-ingressgateway   NodePort    10.233.60.175   <none>        15021:31172/TCP,80:31965/TCP,443:32156/TCP,31400:32381/TCP,15443:31200/TCP   2d1h
+istiod                 ClusterIP   10.233.39.204   <none>        15010/TCP,15012/TCP,443/TCP,15014/TCP                                        2d1h
+jaeger-collector       ClusterIP   10.233.9.113    <none>        14268/TCP,14250/TCP,9411/TCP                                                 19m
+tracing                ClusterIP   10.233.27.59    <none>        80/TCP,16685/TCP                                                             19m
+zipkin                 ClusterIP   10.233.16.245   <none>        9411/TCP                                                                     19m
+root@node1:~/101-master/module12/istio/tracing# 
+root@node1:~/101-master/module12/istio/tracing# 
+root@node1:~/101-master/module12/istio/tracing# 
+root@node1:~/101-master/module12/istio/tracing# curl 10.233.60.175/service0
+===================Details of the http request header:============
+HTTP/1.1 200 OK
+Transfer-Encoding: chunked
+Content-Type: text/plain; charset=utf-8
+Date: Fri, 25 Mar 2022 10:01:41 GMT
+Server: envoy
+X-Envoy-Upstream-Service-Time: 275
+
+388
+===================Details of the http request header:============
+HTTP/1.1 200 OK
+Content-Length: 668
+Content-Type: text/plain; charset=utf-8
+Date: Fri, 25 Mar 2022 10:01:41 GMT
+Server: envoy
+X-Envoy-Upstream-Service-Time: 104
+
+===================Details of the http request header:============
+X-Envoy-Attempt-Count=[1]
+X-Forwarded-Proto=[http]
+X-B3-Sampled=[1]
+User-Agent=[Go-http-client/1.1,Go-http-client/1.1,curl/7.68.0]
+X-Envoy-Internal=[true]
+X-Forwarded-Client-Cert=[By=spiffe://cluster.local/ns/tracing/sa/default;Hash=d188c65ab04d00b19bf383c47738b7a66ffd67b6027c4b864e0ce93eb25a1419;Subject="";URI=spiffe://cluster.local/ns/tracing/sa/default]
+X-B3-Traceid=[e70d62b1d1dcf8e4a5cba862fb74530b]
+Accept-Encoding=[gzip,gzip]
+X-Forwarded-For=[192.168.74.102]
+X-Request-Id=[068108b4-264c-9d50-be31-157845e75217]
+X-B3-Parentspanid=[667a6f3500231dc1]
+Accept=[*/*]
+X-B3-Spanid=[7790b480ac4afd58]
+
+0
+
+
+### Check tracing dashboard
+
+```sh
+istioctl dashboard jaeger
+```
